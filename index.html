@@ -782,7 +782,7 @@ section[id] { scroll-margin-top: 24px; }
 .stop { display: grid; grid-template-columns: var(--stop-rail) minmax(0, 1fr); scroll-margin-top: 24px; }
 .stop__rail { position: relative; }
 .stop__rail::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 6px; margin-left: -3px; background: var(--c); }
-.stop:first-of-type .stop__rail::before { top: 38px; }
+.stop:last-of-type .stop__rail::before { bottom: auto; height: 38px; }
 .stop__dot {
   position: absolute; left: 50%; top: 38px; width: 26px; height: 26px; margin: -13px 0 0 -13px; z-index: 1;
   border-radius: 50%; background: var(--paper); border: 5px solid var(--c);
@@ -831,12 +831,12 @@ section[id] { scroll-margin-top: 24px; }
 .tag--tool { cursor: default; border-style: dashed; }
 
 .terminal { display: grid; grid-template-columns: var(--stop-rail) minmax(0, 1fr); }
-.terminal .stop__rail::before { bottom: auto; height: 38px; }
+.terminal .stop__rail::before { top: 38px; }
 .terminal__dot {
   position: absolute; left: 50%; top: 38px; width: 30px; height: 30px; margin: -15px 0 0 -15px; z-index: 1;
   border-radius: 50%; background: var(--ink); border: 6px solid var(--paper); box-shadow: 0 0 0 3px var(--ink);
 }
-.terminal__body { padding: 26px 0 0 4px; margin: 0; font-size: 19px; }
+.terminal__body { padding: 26px 0 48px 4px; margin: 0; font-size: 19px; }
 .terminal__body strong { font-weight: 600; margin-right: 6px; }
 .terminal__body span { color: var(--ink-2); }
 .terminal__body a { display: inline-block; margin-left: 6px; font-weight: 600; text-underline-offset: 4px; }
@@ -1057,12 +1057,12 @@ window.CV = {
       ctaRoute: 'Ride the career line', ctaTalk: 'Let’s talk',
       reportTitle: '01 — Portfolio report', rag: 'Status: on track',
       routeKicker: '02 — Career route', routeTitle: 'Five stations, one line.',
-      routeLead: 'Scroll to ride the line from 2019 to today — every station is a role.',
+      routeLead: 'Scroll to ride the line back from today to 2019 — every station is a role.',
       mapLabel: 'Career timeline',
       filterLabel: 'Skills', filterHint: 'Tap a skill to highlight where it was put to work.',
       filterCount: 'Roles using this skill: {n} of {total}', filterClear: 'Clear',
       groupResp: 'Responsibilities', groupAch: 'Key achievements', groupProjects: 'Key projects',
-      nextStation: 'Next station', terminal: 'Terminal',
+      nextStation: 'Next station', terminal: 'Last stop',
       terminalTitle: 'Now.', terminalText: 'The line continues. Next station — your project?', terminalCta: 'Let’s talk',
       outcomesKicker: '03 — Outcomes', outcomesTitle: 'Before → after',
       outcomesLead: 'Not outputs — outcomes. What measurably changed for the business.',
@@ -1079,7 +1079,7 @@ window.CV = {
       ctaRoute: 'Проехать по маршруту', ctaTalk: 'Обсудить проект',
       reportTitle: '01 — Отчёт по портфелю', rag: 'Статус: в графике',
       routeKicker: '02 — Маршрут', routeTitle: 'Пять станций — одна линия.',
-      routeLead: 'Прокрутите, чтобы проехать по линии от 2019 года до сегодня: каждая станция — это роль.',
+      routeLead: 'Прокрутите, чтобы проехать по линии от сегодняшнего дня назад к 2019 году: каждая станция — это роль.',
       mapLabel: 'Карьерный маршрут',
       filterLabel: 'Навыки', filterHint: 'Нажмите на навык, чтобы подсветить, где он применялся.',
       filterCount: 'Роли с этим навыком: {n} из {total}', filterClear: 'Сбросить',
@@ -1665,11 +1665,11 @@ window.CV = {
           <p class="filters__count label" aria-live="polite"></p>
           <div class="stops">
             <div class="train" aria-hidden="true">${TRAIN_SVG}</div>
-            ${roles.map(stopCard).join('')}
             <div class="terminal" style="${lineVars(last)}">
               <div class="stop__rail"><span class="terminal__dot"></span></div>
               <p class="terminal__body"><strong>${U('terminalTitle')}</strong><span>${U('terminalText')}</span> <a href="#contact">${U('terminalCta')} →</a></p>
             </div>
+            ${[...roles].reverse().map(stopCard).join('')}
           </div>
         </div>
       </section>`;
@@ -1795,8 +1795,9 @@ window.CV = {
       points: $$('.stop', stops).map((el) => ({
         el, y: centerY($('.stop__dot', el)), role: roles.find((r) => r.id === el.dataset.role),
       })),
-      end: centerY($('.terminal__dot', stops)),
+      start: centerY($('.terminal__dot', stops)),
     };
+    geo.end = geo.points[geo.points.length - 1].y;
   }
 
   // Highlight the navigation station for the section in view
@@ -1821,7 +1822,7 @@ window.CV = {
     spy();
     if (!geo) return;
     const r = geo.stops.getBoundingClientRect();
-    const y = Math.max(geo.points[0].y, Math.min(geo.end, innerHeight * 0.42 - r.top));
+    const y = Math.max(geo.start, Math.min(geo.end, innerHeight * 0.42 - r.top));
     geo.train.style.transform = `translateY(${y}px)`;
 
     let next = null;
@@ -1842,8 +1843,8 @@ window.CV = {
     el.innerHTML = p
       ? `<span class="line-badge" style="${lineVars(p.role)}">L${p.role.line}</span>
          <span class="next__k">${U('nextStation')}</span><span>${esc(L(p.role.short))} · ${ym(p.role.start).y}</span>`
-      : `<span class="line-badge line-badge--now">●</span>
-         <span class="next__k">${U('terminal')}</span><span>${U('now')}</span>`;
+      : `<span class="line-badge" style="${lineVars(roles[0])}">L${roles[0].line}</span>
+         <span class="next__k">${U('terminal')}</span><span>${esc(L(roles[0].short))} · ${ym(roles[0].start).y}</span>`;
   }
 
   let ticking = false;
